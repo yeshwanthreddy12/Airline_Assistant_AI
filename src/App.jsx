@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Header from './components/Header'
 import SearchPanel from './components/SearchPanel'
 import FlightResults from './components/FlightResults'
 import PriceChart from './components/PriceChart'
 import AIAssistant from './components/AIAssistant'
-import { generateFlights, simulatePriceChanges } from './utils/flightData'
+import { generateFlights } from './utils/flightData'
 import './App.css'
 
 function App() {
@@ -13,62 +13,22 @@ function App() {
   const [searchParams, setSearchParams] = useState(null)
   const [loading, setLoading] = useState(false)
   const [selectedFlight, setSelectedFlight] = useState(null)
-  const [priceHistory, setPriceHistory] = useState({})
   const [lastUpdate, setLastUpdate] = useState(new Date())
 
   // Handle flight search
   const handleSearch = async (params) => {
     setLoading(true)
     setSearchParams(params)
+    setSelectedFlight(null)
     
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 800))
     
     const generatedFlights = generateFlights(params)
     setFlights(generatedFlights)
-    
-    // Initialize price history for each flight
-    const initialHistory = {}
-    generatedFlights.forEach(flight => {
-      initialHistory[flight.id] = [{
-        time: new Date(),
-        price: flight.price
-      }]
-    })
-    setPriceHistory(initialHistory)
     setLoading(false)
     setLastUpdate(new Date())
   }
-
-  // Real-time price updates
-  useEffect(() => {
-    if (flights.length === 0) return
-
-    const interval = setInterval(() => {
-      setFlights(prevFlights => {
-        const updatedFlights = simulatePriceChanges(prevFlights)
-        
-        // Update price history
-        setPriceHistory(prev => {
-          const newHistory = { ...prev }
-          updatedFlights.forEach(flight => {
-            if (newHistory[flight.id]) {
-              newHistory[flight.id] = [
-                ...newHistory[flight.id].slice(-29), // Keep last 30 data points
-                { time: new Date(), price: flight.price }
-              ]
-            }
-          })
-          return newHistory
-        })
-        
-        return updatedFlights
-      })
-      setLastUpdate(new Date())
-    }, 5000) // Update every 5 seconds
-
-    return () => clearInterval(interval)
-  }, [flights.length])
 
   return (
     <div className="app">
@@ -100,7 +60,6 @@ function App() {
                     loading={loading}
                     selectedFlight={selectedFlight}
                     onSelectFlight={setSelectedFlight}
-                    priceHistory={priceHistory}
                   />
                 </div>
                 
@@ -113,7 +72,6 @@ function App() {
                   >
                     <PriceChart 
                       flights={flights}
-                      priceHistory={priceHistory}
                       selectedFlight={selectedFlight}
                     />
                   </motion.div>

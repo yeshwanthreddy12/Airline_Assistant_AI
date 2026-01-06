@@ -6,7 +6,7 @@
 ![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 ![AI](https://img.shields.io/badge/AI-Powered-FF6B6B?style=for-the-badge&logo=openai&logoColor=white)
 
-*An intelligent flight booking assistant that combines real-time price tracking with conversational AI to help users find the best flight deals.*
+*An intelligent flight booking assistant that combines 7-day price forecasting with conversational AI to help users find the best flight deals and optimal booking days.*
 
 </div>
 
@@ -18,14 +18,14 @@ The travel industry is flooded with data—thousands of flights, constantly fluc
 
 ### The Problem
 - ❌ Users face information overload with hundreds of flight options
-- ❌ Prices change rapidly, making it hard to know when to book
+- ❌ Prices vary significantly by day of the week, making timing crucial
 - ❌ Comparing flights across multiple criteria (price, duration, stops) is tedious
 - ❌ No personalized guidance—users are left to figure it out themselves
 
 ### The AI Solution
-- ✅ **Intelligent Analysis**: AI processes all flight data instantly and surfaces the best options
+- ✅ **7-Day Price Forecasting**: AI predicts the best day to book within the next week
 - ✅ **Natural Conversation**: Users ask questions in plain English and get contextual answers
-- ✅ **Real-time Recommendations**: AI monitors price trends and advises when to book
+- ✅ **Smart Recommendations**: AI analyzes day-of-week patterns and advises when to book
 - ✅ **Personalized Insights**: Tailored suggestions based on user preferences and queries
 
 ---
@@ -46,8 +46,8 @@ if (lowerMessage.includes('cheap') || lowerMessage.includes('deal') || lowerMess
 else if (lowerMessage.includes('fast') || lowerMessage.includes('quick')) {
   // INTENT: Find fastest flight → Execute duration optimization logic
 }
-else if (lowerMessage.includes('when') || lowerMessage.includes('book')) {
-  // INTENT: Booking advice → Execute trend analysis logic
+else if (lowerMessage.includes('when') || lowerMessage.includes('day') || lowerMessage.includes('book')) {
+  // INTENT: Best booking day → Execute 7-day forecast analysis
 }
 ```
 
@@ -56,51 +56,72 @@ else if (lowerMessage.includes('when') || lowerMessage.includes('book')) {
 |--------|-----------------|-------------|
 | Price Optimization | "cheap", "deal", "save", "budget" | Finds lowest-priced flights with savings analysis |
 | Speed Optimization | "fast", "quick", "short" | Recommends quickest routes |
-| Booking Timing | "when", "time", "book" | Analyzes trends and advises on timing |
-| Comparison | "compare", "options", "all" | Provides side-by-side comparison |
+| Booking Timing | "when", "day", "book", "forecast" | Analyzes 7-day forecast and advises optimal booking day |
+| Weekend Analysis | "weekend", "saturday", "sunday" | Compares weekend vs weekday pricing |
+| Comparison | "compare", "options", "all" | Provides side-by-side comparison with best days |
 | General Help | "help", "hello", "hi" | Offers guidance and capabilities |
 
-### 2. **Real-Time Data Analytics & Price Intelligence**
+### 2. **7-Day Price Forecasting Algorithm**
 
-The system implements continuous price monitoring with intelligent trend analysis:
+The system implements intelligent price prediction based on multiple factors:
 
 ```javascript
-// Price Trend Analysis Algorithm
-const getPriceRecommendation = () => {
-  const history = priceHistory[lowestFlight.id]
-  const recent = history.slice(-3)  // Last 3 data points
-  const trend = recent[2].price - recent[0].price
-  
-  if (trend < -5) return { status: 'buy', message: 'Prices dropping!' }
-  if (trend > 5) return { status: 'wait', message: 'Prices rising.' }
-  return { status: 'neutral', message: 'Prices stable.' }
+// Day of Week Pricing Factors
+const dayOfWeekFactors = {
+  0: 1.15, // Sunday - higher demand
+  1: 0.85, // Monday - lowest prices (business travel lull)
+  2: 0.90, // Tuesday - second best
+  3: 0.92, // Wednesday
+  4: 0.95, // Thursday
+  5: 1.10, // Friday - weekend travel begins
+  6: 1.20, // Saturday - peak pricing
 }
+
+// Advance Booking Factors (how far ahead you book)
+const advanceBookingFactors = [
+  1.25,  // Day 0 (today) - last minute premium
+  1.15,  // Day 1 (tomorrow)
+  1.05,  // Day 2
+  1.00,  // Day 3
+  0.95,  // Day 4
+  0.92,  // Day 5
+  0.90,  // Day 6 - best price (sweet spot)
+]
 ```
 
-**How It Works:**
-- 📊 Prices update every 5 seconds (simulating real market conditions)
-- 📈 Historical price data is tracked for each flight (up to 30 data points)
-- 🔔 AI analyzes trends to provide booking recommendations
+**How the Forecast Works:**
+- 📅 Generates price predictions for the next 7 days
+- 📊 Combines day-of-week patterns with advance booking benefits
+- 🎯 Identifies the optimal day to book for maximum savings
+- 💰 Calculates potential savings compared to today's price
 
 ### 3. **Intelligent Recommendation Engine**
 
-The AI doesn't just retrieve data—it **synthesizes insights**:
+The AI synthesizes multiple data points to provide actionable insights:
 
 ```javascript
-// Multi-Factor Analysis
-const cheapest = [...flights].sort((a, b) => a.price - b.price)[0]
-const fastest = [...flights].sort((a, b) => a.durationMinutes - b.durationMinutes)[0]
-const avgPrice = flights.reduce((sum, f) => sum + f.price, 0) / flights.length
-
-// AI generates contextual insights
-response = `This is $${(avgPrice - cheapest.price).toFixed(0)} below average!`
+// Multi-Factor Best Day Analysis
+const getBestBookingDay = (forecast) => {
+  const bestDay = forecast.reduce((min, day) => 
+    day.price < min.price ? day : min, forecast[0]
+  )
+  const todayPrice = forecast[0].price
+  const savings = todayPrice - bestDay.price
+  
+  return {
+    ...bestDay,
+    savings,
+    savingsPercent: Math.round((savings / todayPrice) * 100),
+  }
+}
 ```
 
 **Recommendation Factors:**
+- 📅 **Day of Week Impact**: Weekdays typically 15-35% cheaper than weekends
+- ⏰ **Advance Booking Benefit**: Booking 5-6 days out can save up to 10%
 - 💰 **Price vs. Average**: How much savings compared to market average
 - ⏱️ **Duration Analysis**: Trade-off between speed and cost
 - 🛫 **Stop Optimization**: Non-stop vs. connecting flight value
-- 📉 **Trend Direction**: Whether prices are rising or falling
 
 ### 4. **Conversational AI Design Patterns**
 
@@ -110,6 +131,7 @@ The assistant follows conversational AI best practices:
 |---------|---------------|
 | **Context Awareness** | Maintains conversation history and flight search context |
 | **Proactive Suggestions** | Offers clickable suggestion chips for common queries |
+| **7-Day Insights** | Provides weekly forecast overview in responses |
 | **Graceful Fallbacks** | Provides helpful responses even when no flights are loaded |
 | **Rich Formatting** | Uses markdown-style formatting for readable responses |
 | **Typing Indicators** | Shows "thinking" animation for natural conversation flow |
@@ -119,26 +141,45 @@ The assistant follows conversational AI best practices:
 The system simulates real-world airline pricing behavior:
 
 ```javascript
-// Price Fluctuation Algorithm
-export const simulatePriceChanges = (flights) => {
-  return flights.map(flight => {
-    // Random fluctuation: -5% to +5%
-    const change = (Math.random() - 0.5) * 0.1 * flight.price
-    let newPrice = flight.price + change
+// Weekly Price Forecast Generation
+export const generateWeeklyPriceForecast = (basePrice, flightId) => {
+  const forecast = []
+  const today = new Date()
+  
+  for (let day = 0; day < 7; day++) {
+    const date = addDays(today, day)
+    const dayOfWeek = date.getDay()
     
-    // Boundary constraints (realistic price range)
-    newPrice = Math.max(99, Math.min(999, newPrice))
+    // Combine all pricing factors
+    const dayFactor = dayOfWeekFactors[dayOfWeek]
+    const advanceFactor = advanceBookingFactors[day]
+    const flightVariation = getFlightVariation(flightId, day)
     
-    return { ...flight, price: Math.round(newPrice), previousPrice: flight.price }
-  })
+    const price = basePrice * dayFactor * advanceFactor * flightVariation
+    
+    forecast.push({
+      day,
+      date,
+      dateLabel: day === 0 ? 'Today' : day === 1 ? 'Tomorrow' : format(date, 'EEE, MMM d'),
+      price: Math.round(price),
+      isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
+      isBestDay: false,
+    })
+  }
+  
+  // Mark the cheapest day
+  const minPrice = Math.min(...forecast.map(f => f.price))
+  forecast.forEach(f => { if (f.price === minPrice) f.isBestDay = true })
+  
+  return forecast
 }
 ```
 
 **Pricing Intelligence:**
-- 🎲 Stochastic price changes (random walk model)
-- 📏 Price bounds to maintain realism
-- 🔄 Seat availability decay simulation
-- 📊 Price history tracking for trend analysis
+- 📆 7-day lookahead forecast for each flight
+- 📊 Day-of-week pricing patterns (Mon-Thu cheaper, Fri-Sun expensive)
+- 📈 Advance booking discount curves
+- 🎯 Best day identification and savings calculation
 
 ---
 
@@ -156,8 +197,8 @@ export const simulatePriceChanges = (flights) => {
 ┌─────────────────────────────────────────────────────────────────┐
 │                      AI PROCESSING LAYER                        │
 │  ┌────────────────┐  ┌─────────────────┐  ┌─────────────────┐  │
-│  │ Intent Parser  │  │ Trend Analyzer  │  │ Recommendation  │  │
-│  │  (NLP Logic)   │  │ (Price History) │  │    Engine       │  │
+│  │ Intent Parser  │  │ Forecast Engine │  │ Recommendation  │  │
+│  │  (NLP Logic)   │  │ (7-Day Predict) │  │    Engine       │  │
 │  └────────────────┘  └─────────────────┘  └─────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
                               │
@@ -165,8 +206,8 @@ export const simulatePriceChanges = (flights) => {
 ┌─────────────────────────────────────────────────────────────────┐
 │                        DATA LAYER                               │
 │  ┌─────────────────┐  ┌──────────────┐  ┌───────────────────┐  │
-│  │ Flight Generator│  │Price Simulator│  │ State Management │  │
-│  │  (Mock API)     │  │ (Real-time)   │  │    (React)       │  │
+│  │ Flight Generator│  │ Price Forecast│  │ State Management │  │
+│  │  (Mock API)     │  │  (Weekly)     │  │    (React)       │  │
 │  └─────────────────┘  └──────────────┘  └───────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -177,27 +218,28 @@ export const simulatePriceChanges = (flights) => {
 
 ### 🤖 AI Assistant (SkyPulse AI)
 - **Conversational Interface**: Chat naturally about flights
+- **7-Day Forecast Insights**: Ask "when should I book?" for detailed analysis
 - **Smart Suggestions**: Pre-built query chips for quick actions
 - **Contextual Responses**: Answers adapt based on available flight data
-- **Markdown Rendering**: Clean, formatted responses with highlights
+- **Weekend vs Weekday Analysis**: Understand pricing patterns
 
-### 📊 Real-Time Price Tracking
-- **Live Updates**: Prices refresh every 5 seconds
-- **Visual Trends**: Interactive charts show price movements
-- **Historical Data**: Track price changes over time
-- **Trend Indicators**: Visual cues for price direction
+### 📅 7-Day Price Forecasting
+- **Weekly Price Chart**: Visual bar chart showing prices for the next 7 days
+- **Best Day Highlighting**: Green highlight on the optimal booking day
+- **Savings Calculation**: Shows how much you save by waiting
+- **Weekend Indicators**: Visual cues for typically more expensive days
 
 ### 🔍 Intelligent Search
 - **Multi-Airline Comparison**: 8 major airlines simulated
-- **Flexible Filtering**: Sort by price, duration, or stops
+- **Best Day per Flight**: Each flight shows its optimal booking day
 - **Best Deal Detection**: Automatic highlighting of optimal choices
 - **Seat Availability**: Real-time seat count tracking
 
 ### 📈 Price Analytics Dashboard
-- **Live Charts**: Recharts-powered visualizations
-- **Comparison Mode**: Track multiple flights simultaneously
+- **Weekly Forecast Charts**: Recharts-powered visualizations
+- **Comparison Mode**: Compare 7-day trends across multiple flights
 - **Statistical Summary**: Min, max, and average prices
-- **Booking Recommendations**: AI-driven timing advice
+- **Booking Recommendations**: AI-driven timing advice with specific dates
 
 ---
 
@@ -234,9 +276,9 @@ The application will be available at `http://localhost:5173`
 | **React 18** | UI Component Library |
 | **Vite** | Build Tool & Dev Server |
 | **Framer Motion** | Animations & Transitions |
-| **Recharts** | Data Visualization |
+| **Recharts** | Data Visualization (7-Day Charts) |
 | **Lucide React** | Icon System |
-| **date-fns** | Date Formatting |
+| **date-fns** | Date Formatting & Manipulation |
 
 ---
 
@@ -245,13 +287,13 @@ The application will be available at `http://localhost:5173`
 ```
 src/
 ├── components/
-│   ├── AIAssistant.jsx     # 🤖 Conversational AI interface
-│   ├── FlightResults.jsx   # ✈️ Flight listing with real-time prices
-│   ├── PriceChart.jsx      # 📈 Interactive price trend charts
+│   ├── AIAssistant.jsx     # 🤖 Conversational AI with 7-day forecast insights
+│   ├── FlightResults.jsx   # ✈️ Flight listing with best-day indicators
+│   ├── PriceChart.jsx      # 📈 7-day price forecast charts
 │   ├── SearchPanel.jsx     # 🔍 Flight search form
-│   └── Header.jsx          # 🎨 App header with live indicator
+│   └── Header.jsx          # 🎨 App header with forecast indicator
 ├── utils/
-│   └── flightData.js       # 📊 Data generation & price simulation
+│   └── flightData.js       # 📊 Flight & weekly forecast generation
 ├── App.jsx                 # 🏠 Main application component
 └── main.jsx                # 🚀 Application entry point
 ```
@@ -262,10 +304,11 @@ src/
 
 - [ ] **LLM Integration**: Connect to OpenAI/Claude for more sophisticated NLP
 - [ ] **Voice Interface**: Add speech-to-text for hands-free queries
-- [ ] **Price Prediction**: ML models for forecasting price trends
+- [x] **7-Day Price Forecasting**: Predict best booking days ✅
 - [ ] **Multi-City Search**: Complex itinerary support
 - [ ] **Price Alerts**: Push notifications for price drops
 - [ ] **Booking Integration**: Connect to real airline APIs
+- [ ] **Historical Data**: Learn from past pricing patterns
 
 ---
 
@@ -279,6 +322,6 @@ This project is open source and available under the [MIT License](LICENSE).
 
 **Built with ❤️ and AI**
 
-*Making flight booking smarter, one conversation at a time.*
+*Making flight booking smarter with 7-day price forecasting.*
 
 </div>

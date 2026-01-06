@@ -1,20 +1,25 @@
 import { motion } from 'framer-motion'
-import { Plane, Clock, TrendingUp, TrendingDown, Minus, Sparkles, Briefcase, Wifi, Coffee, Zap } from 'lucide-react'
+import { Plane, Clock, TrendingDown, Calendar, Sparkles, Briefcase, Wifi, Coffee, Zap } from 'lucide-react'
 import './FlightResults.css'
 
-function FlightCard({ flight, isSelected, onClick, priceHistory }) {
-  const history = priceHistory?.[flight.id] || []
-  const previousPrice = history.length > 1 ? history[history.length - 2].price : flight.price
-  const priceChange = flight.price - previousPrice
-  const priceChangePercent = ((priceChange / previousPrice) * 100).toFixed(1)
+function FlightCard({ flight, isSelected, onClick }) {
+  // Get best day from weekly forecast
+  const forecast = flight.weeklyForecast || []
+  const bestDay = forecast.find(d => d.isBestDay)
+  const todayPrice = forecast[0]?.price || flight.price
+  const savings = bestDay ? todayPrice - bestDay.price : 0
   
-  const getPriceTrend = () => {
-    if (priceChange > 0) return { icon: TrendingUp, class: 'price-up', label: `+$${priceChange.toFixed(0)}` }
-    if (priceChange < 0) return { icon: TrendingDown, class: 'price-down', label: `-$${Math.abs(priceChange).toFixed(0)}` }
-    return { icon: Minus, class: 'price-stable', label: 'Stable' }
+  const getTrendInfo = () => {
+    if (!bestDay || bestDay.day === 0) {
+      return { icon: Sparkles, class: 'price-best', label: 'Best Today!' }
+    }
+    if (savings > 0) {
+      return { icon: Calendar, class: 'price-wait', label: `Save $${savings} on ${bestDay.shortDay}` }
+    }
+    return { icon: TrendingDown, class: 'price-stable', label: 'Good price' }
   }
   
-  const trend = getPriceTrend()
+  const trend = getTrendInfo()
   const TrendIcon = trend.icon
 
   return (
@@ -82,7 +87,7 @@ function FlightCard({ flight, isSelected, onClick, priceHistory }) {
         <div className="price-section">
           <div className="price-main">
             <span className="currency">$</span>
-            <span className="price">{flight.price.toFixed(0)}</span>
+            <span className="price">{flight.price}</span>
           </div>
           <div className={`price-trend ${trend.class}`}>
             <TrendIcon size={14} />
@@ -115,7 +120,7 @@ function LoadingSkeleton() {
   )
 }
 
-function FlightResults({ flights, loading, selectedFlight, onSelectFlight, priceHistory }) {
+function FlightResults({ flights, loading, selectedFlight, onSelectFlight }) {
   if (loading) {
     return (
       <div className="flight-results">
@@ -147,7 +152,7 @@ function FlightResults({ flights, loading, selectedFlight, onSelectFlight, price
         </h2>
         <div className="results-summary">
           <span className="summary-item">
-            Cheapest: <strong>${cheapest.price.toFixed(0)}</strong>
+            Cheapest: <strong>${cheapest.price}</strong>
           </span>
           <span className="summary-item">
             Fastest: <strong>{fastest.duration}</strong>
@@ -167,7 +172,6 @@ function FlightResults({ flights, loading, selectedFlight, onSelectFlight, price
               flight={flight}
               isSelected={selectedFlight?.id === flight.id}
               onClick={() => onSelectFlight(flight)}
-              priceHistory={priceHistory}
             />
           </motion.div>
         ))}
@@ -177,4 +181,3 @@ function FlightResults({ flights, loading, selectedFlight, onSelectFlight, price
 }
 
 export default FlightResults
-

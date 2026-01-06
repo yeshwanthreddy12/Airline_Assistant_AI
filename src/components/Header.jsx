@@ -1,4 +1,4 @@
-import { Plane, Sparkles } from 'lucide-react'
+import { Plane, Sparkles, Calendar } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { format } from 'date-fns'
 import './Header.css'
@@ -30,9 +30,10 @@ function Header({ lastUpdate, hasData }) {
         >
           {hasData && (
             <div className="live-status">
-              <span className="live-indicator">Live</span>
+              <Calendar size={14} />
+              <span className="forecast-badge">7-Day Forecast</span>
               <span className="update-time">
-                Updated {format(lastUpdate, 'HH:mm:ss')}
+                {format(lastUpdate, 'MMM d, yyyy')}
               </span>
             </div>
           )}

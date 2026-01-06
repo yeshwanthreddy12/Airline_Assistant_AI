@@ -1,18 +1,35 @@
 import { useState } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
-import { TrendingDown, AlertCircle, Clock, DollarSign } from 'lucide-react'
-import { format } from 'date-fns'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from 'recharts'
+import { Calendar, TrendingDown, AlertCircle, Clock, DollarSign, CalendarDays, Sparkles } from 'lucide-react'
 import { motion } from 'framer-motion'
 import './PriceChart.css'
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
+    const data = payload[0].payload
     return (
       <div className="chart-tooltip">
-        <p className="tooltip-time">{label}</p>
+        <p className="tooltip-day">{data.dayName || label}</p>
+        <p className="tooltip-date">{data.dateLabel}</p>
+        <p className="tooltip-price" style={{ color: data.isBestDay ? '#10b981' : '#38bdf8' }}>
+          ${payload[0].value}
+          {data.isBestDay && <span className="tooltip-badge">Best Price!</span>}
+        </p>
+        {data.isWeekend && <p className="tooltip-note">⚠️ Weekend pricing</p>}
+      </div>
+    )
+  }
+  return null
+}
+
+const CompareTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="chart-tooltip">
+        <p className="tooltip-day">{label}</p>
         {payload.map((entry, index) => (
           <p key={index} className="tooltip-price" style={{ color: entry.color }}>
-            ${entry.value.toFixed(0)}
+            {entry.name}: ${entry.value}
           </p>
         ))}
       </div>
@@ -21,155 +38,187 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null
 }
 
-function PriceChart({ flights, priceHistory, selectedFlight }) {
-  const [activeTab, setActiveTab] = useState('trends')
+function PriceChart({ flights, selectedFlight }) {
+  const [activeTab, setActiveTab] = useState('forecast')
   
-  // Get data for the chart
-  const getChartData = () => {
-    if (selectedFlight && priceHistory[selectedFlight.id]) {
-      return priceHistory[selectedFlight.id].map(point => ({
-        time: format(new Date(point.time), 'HH:mm:ss'),
-        price: point.price
-      }))
-    }
-    
-    // If no flight selected, show top 3 cheapest flights
+  // Get the flight to display (selected or cheapest)
+  const displayFlight = selectedFlight || flights[0]
+  
+  // Get weekly forecast data for chart
+  const getWeeklyChartData = () => {
+    if (!displayFlight?.weeklyForecast) return []
+    return displayFlight.weeklyForecast.map(day => ({
+      ...day,
+      label: day.shortDay,
+    }))
+  }
+  
+  // Get comparison data for top 3 flights
+  const getCompareData = () => {
     const topFlights = [...flights].sort((a, b) => a.price - b.price).slice(0, 3)
+    if (topFlights.length === 0 || !topFlights[0].weeklyForecast) return []
     
-    if (topFlights.length === 0) return []
-    
-    // Find the maximum length of history
-    const maxLength = Math.max(...topFlights.map(f => priceHistory[f.id]?.length || 0))
-    
-    return Array.from({ length: maxLength }, (_, i) => {
-      const dataPoint = { time: '' }
-      topFlights.forEach((flight, idx) => {
-        const history = priceHistory[flight.id]
-        if (history && history[i]) {
-          dataPoint.time = format(new Date(history[i].time), 'HH:mm:ss')
-          dataPoint[`flight${idx}`] = history[i].price
-          dataPoint[`name${idx}`] = flight.airline
+    return topFlights[0].weeklyForecast.map((day, dayIndex) => {
+      const dataPoint = { 
+        label: day.shortDay,
+        dateLabel: day.dateLabel,
+      }
+      topFlights.forEach((flight, flightIndex) => {
+        if (flight.weeklyForecast && flight.weeklyForecast[dayIndex]) {
+          dataPoint[`flight${flightIndex}`] = flight.weeklyForecast[dayIndex].price
+          dataPoint[`name${flightIndex}`] = flight.airline
         }
       })
       return dataPoint
     })
   }
 
-  const chartData = getChartData()
+  const chartData = activeTab === 'forecast' ? getWeeklyChartData() : getCompareData()
   const topFlights = [...flights].sort((a, b) => a.price - b.price).slice(0, 3)
   const colors = ['#38bdf8', '#818cf8', '#c084fc']
   
-  // Calculate price stats
-  const allPrices = flights.map(f => f.price)
-  const avgPrice = allPrices.reduce((a, b) => a + b, 0) / allPrices.length
-  const minPrice = Math.min(...allPrices)
-  const maxPrice = Math.max(...allPrices)
+  // Calculate price stats from weekly forecast
+  const forecast = displayFlight?.weeklyForecast || []
+  const forecastPrices = forecast.map(d => d.price)
+  const minPrice = forecastPrices.length > 0 ? Math.min(...forecastPrices) : 0
+  const maxPrice = forecastPrices.length > 0 ? Math.max(...forecastPrices) : 0
+  const avgPrice = forecastPrices.length > 0 ? forecastPrices.reduce((a, b) => a + b, 0) / forecastPrices.length : 0
   
-  // Get price recommendation
-  const getPriceRecommendation = () => {
-    const lowestFlight = flights.reduce((a, b) => a.price < b.price ? a : b)
-    const history = priceHistory[lowestFlight.id] || []
+  // Find best booking day
+  const bestDay = forecast.find(d => d.isBestDay)
+  const todayPrice = forecast[0]?.price || 0
+  const savings = todayPrice - (bestDay?.price || todayPrice)
+  
+  // Get recommendation based on forecast
+  const getRecommendation = () => {
+    if (!bestDay) return { status: 'neutral', message: 'Loading forecast data...' }
     
-    if (history.length < 3) return { status: 'neutral', message: 'Gathering price data...' }
-    
-    const recent = history.slice(-3)
-    const trend = recent[2].price - recent[0].price
-    
-    if (trend < -5) return { status: 'buy', message: 'Prices are dropping! Good time to book.' }
-    if (trend > 5) return { status: 'wait', message: 'Prices rising. Consider setting an alert.' }
-    return { status: 'neutral', message: 'Prices are stable. Normal booking conditions.' }
+    if (bestDay.day === 0) {
+      return { 
+        status: 'buy', 
+        message: `Today has the best price at $${bestDay.price}! Book now.` 
+      }
+    } else if (bestDay.day === 1) {
+      return { 
+        status: 'wait', 
+        message: `Wait until tomorrow to save $${savings}!` 
+      }
+    } else {
+      return { 
+        status: 'wait', 
+        message: `Best price on ${bestDay.dateLabel} - save $${savings} (${Math.round((savings / todayPrice) * 100)}% off)` 
+      }
+    }
   }
   
-  const recommendation = getPriceRecommendation()
+  const recommendation = getRecommendation()
 
   return (
     <div className="price-chart-container">
       <div className="chart-header">
         <h3 className="chart-title">
-          <TrendingDown size={20} />
-          Price Trends
+          <CalendarDays size={20} />
+          7-Day Price Forecast
         </h3>
-        <div className="live-indicator">Live</div>
+        <div className="forecast-indicator">
+          <Calendar size={14} />
+          Weekly View
+        </div>
       </div>
 
       <div className="chart-tabs">
         <button 
-          className={`chart-tab ${activeTab === 'trends' ? 'active' : ''}`}
-          onClick={() => setActiveTab('trends')}
+          className={`chart-tab ${activeTab === 'forecast' ? 'active' : ''}`}
+          onClick={() => setActiveTab('forecast')}
         >
-          Live Trends
+          <Calendar size={14} />
+          Weekly Forecast
         </button>
         <button 
           className={`chart-tab ${activeTab === 'compare' ? 'active' : ''}`}
           onClick={() => setActiveTab('compare')}
         >
-          Compare
+          <TrendingDown size={14} />
+          Compare Flights
         </button>
       </div>
 
       <div className="chart-area">
-        {selectedFlight ? (
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={chartData}>
+        {activeTab === 'forecast' ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
               <defs>
-                <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#38bdf8" stopOpacity={0}/>
+                <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#38bdf8" stopOpacity={1}/>
+                  <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0.8}/>
+                </linearGradient>
+                <linearGradient id="bestBarGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={1}/>
+                  <stop offset="100%" stopColor="#059669" stopOpacity={0.8}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" vertical={false} />
               <XAxis 
-                dataKey="time" 
+                dataKey="label" 
                 stroke="#64748b"
-                fontSize={10}
+                fontSize={11}
                 tickLine={false}
+                axisLine={false}
               />
               <YAxis 
                 stroke="#64748b"
                 fontSize={10}
                 tickLine={false}
+                axisLine={false}
                 tickFormatter={(value) => `$${value}`}
-                domain={['dataMin - 20', 'dataMax + 20']}
+                domain={[minPrice - 30, maxPrice + 30]}
               />
-              <Tooltip content={<CustomTooltip />} />
-              <Area
-                type="monotone"
-                dataKey="price"
-                stroke="#38bdf8"
-                strokeWidth={2}
-                fill="url(#priceGradient)"
-                dot={false}
-                activeDot={{ r: 6, fill: '#38bdf8' }}
-              />
-            </AreaChart>
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(56, 189, 248, 0.1)' }} />
+              <Bar 
+                dataKey="price" 
+                radius={[6, 6, 0, 0]}
+                maxBarSize={45}
+              >
+                {chartData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={entry.isBestDay ? 'url(#bestBarGradient)' : 'url(#barGradient)'}
+                    stroke={entry.isBestDay ? '#10b981' : 'transparent'}
+                    strokeWidth={entry.isBestDay ? 2 : 0}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
           </ResponsiveContainer>
         ) : (
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={chartData}>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" />
               <XAxis 
-                dataKey="time" 
+                dataKey="label" 
                 stroke="#64748b"
-                fontSize={10}
+                fontSize={11}
                 tickLine={false}
+                axisLine={false}
               />
               <YAxis 
                 stroke="#64748b"
                 fontSize={10}
                 tickLine={false}
+                axisLine={false}
                 tickFormatter={(value) => `$${value}`}
-                domain={['dataMin - 20', 'dataMax + 20']}
+                domain={['dataMin - 30', 'dataMax + 30']}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CompareTooltip />} />
               {topFlights.map((flight, idx) => (
                 <Line
                   key={flight.id}
                   type="monotone"
                   dataKey={`flight${idx}`}
                   stroke={colors[idx]}
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 4 }}
+                  strokeWidth={2.5}
+                  dot={{ fill: colors[idx], strokeWidth: 0, r: 4 }}
+                  activeDot={{ r: 6, fill: colors[idx] }}
                   name={flight.airline}
                 />
               ))}
@@ -178,16 +227,38 @@ function PriceChart({ flights, priceHistory, selectedFlight }) {
         )}
       </div>
 
-      {!selectedFlight && topFlights.length > 0 && (
+      {activeTab === 'compare' && topFlights.length > 0 && (
         <div className="chart-legend">
           {topFlights.map((flight, idx) => (
             <div key={flight.id} className="legend-item">
               <span className="legend-dot" style={{ background: colors[idx] }}></span>
               <span className="legend-name">{flight.airline}</span>
-              <span className="legend-price">${flight.price.toFixed(0)}</span>
+              <span className="legend-price">${flight.price}</span>
             </div>
           ))}
         </div>
+      )}
+
+      {activeTab === 'forecast' && bestDay && (
+        <motion.div 
+          className="best-day-card"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <div className="best-day-icon">
+            <Sparkles size={18} />
+          </div>
+          <div className="best-day-content">
+            <span className="best-day-label">Best Day to Book</span>
+            <span className="best-day-value">{bestDay.dateLabel}</span>
+          </div>
+          <div className="best-day-price">
+            <span className="price-value">${bestDay.price}</span>
+            {savings > 0 && (
+              <span className="savings-badge">Save ${savings}</span>
+            )}
+          </div>
+        </motion.div>
       )}
 
       <div className="price-stats">
@@ -195,21 +266,21 @@ function PriceChart({ flights, priceHistory, selectedFlight }) {
           <DollarSign size={16} />
           <div className="stat-content">
             <span className="stat-label">Lowest</span>
-            <span className="stat-value price-down">${minPrice.toFixed(0)}</span>
+            <span className="stat-value price-down">${minPrice}</span>
           </div>
         </div>
         <div className="stat-item">
           <Clock size={16} />
           <div className="stat-content">
             <span className="stat-label">Average</span>
-            <span className="stat-value">${avgPrice.toFixed(0)}</span>
+            <span className="stat-value">${Math.round(avgPrice)}</span>
           </div>
         </div>
         <div className="stat-item">
           <AlertCircle size={16} />
           <div className="stat-content">
             <span className="stat-label">Highest</span>
-            <span className="stat-value price-up">${maxPrice.toFixed(0)}</span>
+            <span className="stat-value price-up">${maxPrice}</span>
           </div>
         </div>
       </div>
@@ -222,14 +293,14 @@ function PriceChart({ flights, priceHistory, selectedFlight }) {
       >
         <div className="recommendation-icon">
           {recommendation.status === 'buy' && '🎉'}
-          {recommendation.status === 'wait' && '⏳'}
+          {recommendation.status === 'wait' && '📅'}
           {recommendation.status === 'neutral' && '📊'}
         </div>
         <div className="recommendation-content">
           <span className="recommendation-title">
-            {recommendation.status === 'buy' && 'Good Time to Book!'}
-            {recommendation.status === 'wait' && 'Consider Waiting'}
-            {recommendation.status === 'neutral' && 'Market Analysis'}
+            {recommendation.status === 'buy' && 'Book Today!'}
+            {recommendation.status === 'wait' && 'Wait for Better Price'}
+            {recommendation.status === 'neutral' && 'Analyzing...'}
           </span>
           <span className="recommendation-message">{recommendation.message}</span>
         </div>
@@ -237,7 +308,7 @@ function PriceChart({ flights, priceHistory, selectedFlight }) {
 
       {selectedFlight && (
         <div className="selected-flight-info">
-          <span className="info-label">Tracking:</span>
+          <span className="info-label">Viewing forecast for:</span>
           <span className="info-value">{selectedFlight.airline} {selectedFlight.flightNumber}</span>
         </div>
       )}
@@ -246,4 +317,3 @@ function PriceChart({ flights, priceHistory, selectedFlight }) {
 }
 
 export default PriceChart
-
