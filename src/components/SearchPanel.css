@@ -1,0 +1,251 @@
+.search-panel {
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  padding: 32px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-lg);
+}
+
+.search-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.search-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: -1px;
+}
+
+.search-subtitle {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.search-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.trip-type-tabs {
+  display: flex;
+  gap: 8px;
+  background: var(--bg-secondary);
+  padding: 6px;
+  border-radius: var(--radius-md);
+  width: fit-content;
+}
+
+.trip-tab {
+  padding: 10px 20px;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.trip-tab:hover {
+  color: var(--text-primary);
+}
+
+.trip-tab.active {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+}
+
+.search-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.location-fields {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.location-fields .field-group {
+  flex: 1;
+}
+
+.swap-button {
+  width: 44px;
+  height: 44px;
+  background: var(--bg-secondary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  margin-bottom: 4px;
+}
+
+.swap-button:hover {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  transform: rotate(180deg);
+}
+
+.date-fields {
+  display: flex;
+  gap: 16px;
+}
+
+.date-fields .field-group {
+  flex: 1;
+}
+
+.passengers-field {
+  max-width: 180px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.field-input {
+  padding: 14px 16px;
+  font-size: 1rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.field-input:focus {
+  border-color: var(--accent-primary);
+  background: var(--bg-primary);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+}
+
+.location-input {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.search-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 18px 32px;
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid));
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.3);
+  transition: all 0.3s ease;
+  margin-top: 8px;
+}
+
+.search-button:hover:not(:disabled) {
+  box-shadow: 0 6px 30px rgba(56, 189, 248, 0.4);
+}
+
+.search-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.quick-routes {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.quick-label {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.route-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.route-chip {
+  padding: 8px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 100px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.route-chip:hover {
+  background: var(--bg-card-hover);
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+@media (max-width: 768px) {
+  .search-panel {
+    padding: 24px 20px;
+  }
+  
+  .search-title {
+    font-size: 1.75rem;
+  }
+  
+  .location-fields {
+    flex-direction: column;
+  }
+  
+  .swap-button {
+    align-self: center;
+    transform: rotate(90deg);
+  }
+  
+  .swap-button:hover {
+    transform: rotate(270deg);
+  }
+  
+  .date-fields {
+    flex-direction: column;
+  }
+  
+  .passengers-field {
+    max-width: 100%;
+  }
+}
+
